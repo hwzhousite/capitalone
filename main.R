@@ -1,5 +1,7 @@
 library(jsonlite)
 library(dplyr) 
+library(randomForestSRC)
+library(glmnet)
 
 #####################################
 # Data Loading
@@ -14,17 +16,28 @@ library(dplyr)
 data <- read.csv("transaction.csv")
 data <- data[,-1]
 head(data)
+apply(data, 2, function(x) sum(is.na(x)))
 col_na <- c("customerId","echoBuffer", "merchantCity","merchantState","merchantZip","posOnPremises","recurringAuthInd")
 data <- data[,!colnames(data) %in% col_na]
 head(data)
+
+cont_data <- c("creditLimit", "availableMoney","transactionAmount")
+apply(data[,cont_data], 2, mean)
+apply(data[,cont_data], 2, min)
+apply(data[,cont_data], 2, max)
+
+
+
+table(data$merchantCategoryCode)
+table(data$isFraud)
 
 #####################################
 # Plot
 #####################################
 
-plot(1:length(data$transactionAmount), data$transactionAmount)
+hist(data$transactionAmount, probability = TRUE, breaks = 200,main = "TransactionAmount")
 
-hist(data$transactionAmount, probability = TRUE, breaks = 100)
+hist(log(data$transactionAmount), probability = TRUE, breaks = 200,main = "TransactionAmount")
 
 #####################################
 # Data Wrangling
@@ -97,8 +110,9 @@ for (i in 1:length(ind_reversal)) {
 table(ind_rec)
 
 
-
+##################################################
 # Multi-Swipe
+##################################################
 temp_data <- temp_data[-c(ind_reversal, match_rev[!is.na(match_rev)] ),]
 
 time_seq <- as.POSIXct(temp_data$transactionDateTime,
@@ -139,20 +153,33 @@ final_data <- temp_data[ multi_ind == 0, ]
 #####################################
 # Model
 #####################################
+data_model <- final_data[, c("availableMoney", "transactionAmount",
+                             "currentBalance")]
+data_model[,"creditLimit"] <- as.factor(final_data[,"creditLimit"])
+data_model[,"merchantCategoryCode"] <- as.factor(final_data[,"merchantCategoryCode"])
+data_model[,"cardPresent"] <- as.factor(final_data[,"cardPresent"])
+data_model[,"expirationDateKeyInMatch"] <- as.factor(final_data[,"expirationDateKeyInMatch"])
+data_model[,"acq_merchat"] <- as.factor( final_data$acqCountry == final_data$merchantCountryCode )
+data_model[,"y"] <- as.factor(as.numeric(final_data$isFraud))
 
-table(temp_data$isFraud)
-
-# merchantCategoryCode
-
-table(temp_data$creditLimit)
-
-
-data_model <- final_data[, c("creditLimit","posConditionCode","posEntryMode",
-                       "merchantCategoryCode","cardPresent","isFraud")]
+# Sampling
 
 # Generalized Linear Model
+y <- data_model$y
+X <- model.matrix(~.,data_model[,-ncol(data_model)])
+X <- X[,-1]
 
+cv_index <- sample(1:10, length(y), replace = TRUE)
+seq_auc <- rep(NA, 10)
+seq_accuracy <- rep(NA, 10)
 
+for(i in 1:10){
+  
+  temp_ind <- which(cv_indx != i)
+  cvfit <- cv.glmnet(X[temp_ind,], y[temp_ind,drop= FALSE], family = "binomial", type.measure = "class")
+  pred1 <- predict(cvfit, newx = X[-temp_ind,], s = "lambda.min", type = "class")
+  pred2 <- predict(cvfit, newx = X[-temp_ind,], s = "lambda.min", type = "response")
+}
 
-# Random Forest
+cvfit <- cv.glmnet(X, y, family = "binomial", type.measure = "class")
 
