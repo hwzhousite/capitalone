@@ -11,8 +11,8 @@ library(dplyr)
 #   as.data.frame(temp)
 #  }) %>% bind_rows()
 
-data <- read.csv("transaction.csv", row.names = FALSE)
-
+data <- read.csv("transaction.csv")
+head(data)
 colnames(data)
 summary(data)
 #####################################
@@ -27,10 +27,30 @@ hist(data$transactionAmount, probability = TRUE, breaks = 100)
 #####################################
 
 temp_data <- data[data$transactionType != "ADDRESS_VERIFICATION", ]
-temp_data$transactionType
-
 ind_reversal <- which(temp_data$transactionType == "REVERSAL")
 temp_data[ind_reversal, ]
+
+# The reversal index is recordedin ind_reversal
+# Test whether this index is reliable
+
+for (i in 1:ind_reversal) {
+  
+  temp_account <- temp_data[ind_reversal[i], "accountNumber"]
+  
+  
+  
+}
+
+
+head(temp_data[,c("accountNumber" ,"transactionAmount","transactionType")],20)
+
+check_reverse <- cbind(temp_data[ind_reversal, c( "transactionAmount","transactionType")],
+temp_data[ind_reversal-1, c( "transactionAmount","transactionType")])
+head(check_reverse)
+
+a <- temp_data[1:75,c( "transactionAmount","transactionType")]
+which(a$transactionAmount == "3.87"  )
+a$transactionAmount[72]
 temp_data[temp_data$accountNumber == "574788567", ]
 temp_data[60:75,]
 test <- cbind(temp_data[ind_reversal,"transactionAmount"],
