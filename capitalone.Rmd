@@ -4,3 +4,11 @@ output: pdf_document
 ---
 
 There are totally 786363 records.
+
+
+
+# Question 3: Data Wrangling - Duplicate Transactions
+
+## Reversed Transaction
+
+There is an indicator 'REVERSAL' in the variable transactionTYpe showing this transaction is reversed. There are 20303 reversal transaction. When we look into the matching purchase with these reversal transaction, we can find out there are records not having corresponding transaction. And there are records have consecutive transaction of purchasing and reversal. The left reversal transaction is not consecutive, which require us to look through the account to find the transaction with the same amount and merchant Name.
